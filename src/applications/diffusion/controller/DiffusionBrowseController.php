@@ -298,22 +298,8 @@ final class DiffusionBrowseController extends DiffusionController {
       $empty_result->setDiffusionBrowseResultSet($results);
       $empty_result->setView($request->getStr('view'));
     } else {
-      $phids = array();
-      foreach ($results->getPaths() as $result) {
-        $data = $result->getLastCommitData();
-        if ($data) {
-          if ($data->getCommitDetail('authorPHID')) {
-            $phids[$data->getCommitDetail('authorPHID')] = true;
-          }
-        }
-      }
-
-      $phids = array_keys($phids);
-      $handles = $this->loadViewerHandles($phids);
-
       $browse_table = id(new DiffusionBrowseTableView())
         ->setDiffusionRequest($drequest)
-        ->setHandles($handles)
         ->setPaths($results->getPaths())
         ->setUser($request->getUser());
 
@@ -938,17 +924,12 @@ final class DiffusionBrowseController extends DiffusionController {
     $repository = $drequest->getRepository();
     $path = $drequest->getPath();
 
-    $path_map = id(new DiffusionPathIDQuery(array($path)))->loadPathIDs();
-    $path_id = idx($path_map, $path);
-    if (!$path_id) {
-      return null;
-    }
-
     $recent = (PhabricatorTime::getNow() - phutil_units('30 days in seconds'));
 
     $revisions = id(new DifferentialRevisionQuery())
       ->setViewer($viewer)
-      ->withPath($repository->getID(), $path_id)
+      ->withPaths(array($path))
+      ->withRepositoryPHIDs(array($repository->getPHID()))
       ->withIsOpen(true)
       ->withUpdatedEpochBetween($recent, null)
       ->setOrder(DifferentialRevisionQuery::ORDER_MODIFIED)
@@ -963,7 +944,7 @@ final class DiffusionBrowseController extends DiffusionController {
     }
 
     $header = id(new PHUIHeaderView())
-      ->setHeader(pht('Recently Open Revisions'));
+      ->setHeader(pht('Recent Open Revisions'));
 
     $list = id(new DifferentialRevisionListView())
       ->setViewer($viewer)

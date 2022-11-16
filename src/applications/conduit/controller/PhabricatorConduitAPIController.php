@@ -238,6 +238,16 @@ final class PhabricatorConduitAPIController
       if ($object instanceof PhabricatorUser) {
         $user = $object;
       } else {
+        if ($object->isDisabled()) {
+          return array(
+            'ERR-INVALID-AUTH',
+            pht(
+              'The key which signed this request is associated with a '.
+              'disabled device ("%s").',
+              $object->getName()),
+          );
+        }
+
         if (!$stored_key->getIsTrusted()) {
           return array(
             'ERR-INVALID-AUTH',
@@ -251,9 +261,9 @@ final class PhabricatorConduitAPIController
           return array(
             'ERR-INVALID-AUTH',
             pht(
-              'This request originates from outside of the Phabricator '.
-              'cluster address range. Requests signed with trusted '.
-              'device keys must originate from within the cluster.'),
+              'This request originates from outside of the cluster address '.
+              'range. Requests signed with trusted device keys must '.
+              'originate from within the cluster.'),
           );
         }
 
@@ -354,9 +364,9 @@ final class PhabricatorConduitAPIController
           return array(
             'ERR-INVALID-AUTH',
             pht(
-              'This request originates from outside of the Phabricator '.
-              'cluster address range. Requests signed with cluster API '.
-              'tokens must originate from within the cluster.'),
+              'This request originates from outside of the cluster address '.
+              'range. Requests signed with cluster API tokens must '.
+              'originate from within the cluster.'),
           );
         }
 

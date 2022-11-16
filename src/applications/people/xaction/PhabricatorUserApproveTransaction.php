@@ -22,19 +22,23 @@ final class PhabricatorUserApproveTransaction
 
     $actor = $this->getActor();
     $title = pht(
-      'Phabricator Account "%s" Approved',
+      '%s Account "%s" Approved',
+      PlatformSymbols::getPlatformServerName(),
       $user->getUsername());
 
     $body = sprintf(
       "%s\n\n  %s\n\n",
       pht(
-        'Your Phabricator account (%s) has been approved. You can '.
+        'Your %s account (%s) has been approved by %s. You can '.
         'login here:',
-        $user->getUsername()),
+        PlatformSymbols::getPlatformServerName(),
+        $user->getUsername(),
+        $actor->getUsername()),
       PhabricatorEnv::getProductionURI('/'));
 
     $mail = id(new PhabricatorMetaMTAMail())
       ->addTos(array($user->getPHID()))
+      ->addCCs(array($actor->getPHID()))
       ->setSubject('[FreeBSD] '.$title)
       ->setForceDelivery(true)
       ->setBody($body)
@@ -69,7 +73,10 @@ final class PhabricatorUserApproveTransaction
         continue;
       }
 
-      if (!$actor->getIsAdmin()) {
+      $is_admin = $actor->getIsAdmin();
+      $is_omnipotent = $actor->isOmnipotent();
+
+      if (!$is_admin && !$is_omnipotent) {
         $errors[] = $this->newInvalidError(
           pht('You must be an administrator to approve users.'));
       }
